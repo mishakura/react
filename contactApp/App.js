@@ -4,11 +4,13 @@ import AddNum from "./components/AddNum"
 import Filter from "./components/Filter"
 import axios from "axios"
 import contactService from "./services/axiosFunc"
+import Message from "./components/Message"
 
 
 const App = () => {
   const [persons, setPersons] = useState([])
   const [searched, setSearched] = useState(persons) 
+  const [message, setMessage] = useState('')
   
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
@@ -64,19 +66,35 @@ const App = () => {
             const changeContactNumber = persons.filter(p => p.id === idOfExistingData)
             const newObject = {...changeContactNumber[0], number: newNumber}
             contactService.update(idOfExistingData, newObject)
-            .then(changedData => setPersons(persons.map(p => p.id !== changedData.id ? p : changedData)))
-
+            .then(changedData => {
+              setPersons(persons.map(p => p.id !== changedData.id ? p : changedData))
+              setMessage(`Changed ${changedData.name}`)
+              setTimeout(() => {
+                setMessage('')
+              }, 5000)
+            })
+            .catch(error => {
+              setMessage(`Error!, ${newObject.name} has been deleted from server.`)
+              setTimeout(()=>{
+                setMessage('')
+              } , 5000)
+            })
           }
         }
-
         
       }
     } )
     if (nameNotInDataBase){
       contactService.create(newObject)
     .then(returnedNote => {
-      
-      setPersons(persons.concat(returnedNote))})
+    
+      setPersons(persons.concat(returnedNote))
+      setMessage(`Added ${newObject.name}`)
+      setTimeout(() => {
+        setMessage('')
+      }, 5000)
+    
+    })
 
     }
   }
@@ -90,6 +108,7 @@ const App = () => {
   return (
     <div>
     <h2>Phonebook</h2>
+    <Message message = {message}/>
     <Filter val ={lookUp} lookChange = {search}/>
   
      
