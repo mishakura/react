@@ -3,6 +3,7 @@ import Persons from "./components/Persons"
 import AddNum from "./components/AddNum"
 import Filter from "./components/Filter"
 import axios from "axios"
+import contactService from "./services/axiosFunc"
 
 
 const App = () => {
@@ -14,13 +15,23 @@ const App = () => {
   const [lookUp, setLookUp] = useState('')
 
   useEffect(() =>{
-    axios.get("http://localhost:3001/persons")
-    .then(response =>{
-      console.log(response.data)
-      setPersons(response.data)
-      setSearched(response.data)
+    contactService.getAll()
+    .then(allContacts =>{
+      setPersons(allContacts)
+      setSearched(allContacts)
     })
   }, [])
+
+  const deleteButton = (id) =>{
+    const searchById = persons.filter(p => p.id == id)
+    console.log(id)
+    let deleteConfirmation = window.confirm(`Do you really want to delete ${searchById[0].name}?` )
+    if (deleteConfirmation){
+      axios.delete(`http://localhost:3001/persons/${id}`)
+    .then(response => setPersons(persons.filter(p => p.id != id)))
+    }
+    
+  }
 
 
   const handleNameChange = (e) =>{
@@ -34,17 +45,40 @@ const App = () => {
     e.preventDefault()
     const newObject = {
       name: newName,
-      number: newNumber,
-      id: persons.length + 1
+      number: newNumber
     }
-    var nameInDataBase = false
+    
+    let nameNotInDataBase = true
+    let idOfExistingData = 0
     persons.forEach(element =>{
       if(element.name.toLowerCase() === newObject.name.toLowerCase()){
-        nameInDataBase = true
+        nameNotInDataBase = false
+        idOfExistingData = element.id
+        if (element.number == newObject.number){
+          alert(`${element.name} is already in your conctact App`)
+          
+        }
+        else{
+          let changeOfNumber = window.confirm(`${element.name} is already in your contact App. Would you like to change the old number for the new one?`)
+          if (changeOfNumber){
+            const changeContactNumber = persons.filter(p => p.id === idOfExistingData)
+            const newObject = {...changeContactNumber[0], number: newNumber}
+            contactService.update(idOfExistingData, newObject)
+            .then(changedData => setPersons(persons.map(p => p.id !== changedData.id ? p : changedData)))
+
+          }
+        }
+
+        
       }
     } )
-    nameInDataBase ? alert(`${newObject.name} is already added to phonebook`) : setPersons(persons.concat(newObject))
+    if (nameNotInDataBase){
+      contactService.create(newObject)
+    .then(returnedNote => {
+      
+      setPersons(persons.concat(returnedNote))})
 
+    }
   }
 
   const search = (e) =>{
@@ -65,7 +99,7 @@ const App = () => {
 
 
     <h3>Numbers</h3>
-    <Persons persons = {searched}/>
+    <Persons persons = {persons} look = {lookUp} filter = {searched} deleteButton = {deleteButton}/>
 
 
 
@@ -74,5 +108,3 @@ const App = () => {
 }
 
 export default App
-
-
